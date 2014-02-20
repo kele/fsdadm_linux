@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
         return -2;
     }
 
-    char buf[10];
+    char buf[granularity];
     size_t b;
-    while (b = read(fd, buf, 10)) {
+    while (b = read(fd, buf, granularity)) {
         printf("read %zu bytes\n", b); 
     }
 
