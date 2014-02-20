@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <linux/fsdadm.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -10,6 +11,11 @@
 #include <stdint.h>
 
 #define DRIVER_PATH "/dev/fsdadm"
+int open_driver()
+{
+    return open(DRIVER_PATH, O_RDWR);
+}
+
 int install_hook(const char *filename)
 {
     struct fsdadm_ioc_hook io;
@@ -37,42 +43,29 @@ int install_hook(const char *filename)
         close(drv);
         return err;
     }
+
+    printf("Installed hook of id: %u\n", (unsigned)io.io_id);
     
     close(mnt);
     close(drv);
     return 0;
 }
 
-int open_driver()
+int remove_hook(uint64_t id)
 {
-    return open(DRIVER_PATH, O_RDWR);
-}
-
-int remove_hook(const char *filename)
-{
-    uint64_t io;
     int err;
     int drv;
-    int mnt;
 
     if ((drv = open_driver()) == -1)
         return errno;
 
-    if ((mnt = open(filename, O_RDONLY)) == -1) {
-        err = errno;
-        close(drv);
-        return err;
-    }
 
-    io = mnt;
-    if (ioctl(drv, FSDADM_IOC_REMOVE, &io) == -1) {
+    if (ioctl(drv, FSDADM_IOC_REMOVE, &id) == -1) {
         err = errno;
-        close(mnt);
         close(drv);
         return err;
     }
     
-    close(mnt);
     close(drv);
     return 0;
 }
@@ -82,7 +75,9 @@ int main(int argc, char *argv[])
     int err;
 
     if (argc != 3) {
-        puts("Usage: fsdadm [i | r] filename\n");
+        puts("Usage:\n"
+            "\tfsdadm i filename\n"
+            "\tfsdadm r id\n\n");
         return 1;
     }
 
@@ -91,7 +86,7 @@ int main(int argc, char *argv[])
         err = install_hook(argv[2]);    
         break;
     case 'r':
-        err = remove_hook(argv[2]);
+        err = remove_hook(atoi(argv[2]));
         break;
     }
 
